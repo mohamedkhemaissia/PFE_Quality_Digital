@@ -3,7 +3,8 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { FileText, Send, Upload, LogOut, Menu, X } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// base URL fournie par .env, aucune valeur par défaut pour forcer la configuration
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Dashboard() {
   const { user, logout } = useContext(AuthContext);

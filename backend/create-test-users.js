@@ -1,37 +1,72 @@
 const mongoose = require('mongoose');
 const User = require('./src/models/User');
+const Department = require('./src/models/Department');
 
 // Connexion à MongoDB
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://mohamedkhemaissia_db_user:iMK7N9N97wel58Dp@cluster0.de1fogr.mongodb.net/?appName=Cluster0';
+// Ne jamais laisser de credentials en dur dans ce fichier. L'URI doit
+en être fourni via une variable d'environnement (MONGO_URI).
+// Si vous travaillez en local, placez-la dans backend/.env et assurez‑vous que
+// le fichier est listé dans .gitignore (c'est déjà le cas).
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error('🚨 MONGO_URI non défini. Veuillez configurer la variable d\'environnement.');
+  process.exit(1);
+}
 
 async function createTestUsers() {
   try {
     await mongoose.connect(MONGO_URI);
     console.log('✅ Connecté à MongoDB');
 
-    // Supprimer les utilisateurs existants
+    // supprimer collections liées pour repartir proprement
     await User.deleteMany({});
-    console.log('🗑️ Utilisateurs existants supprimés');
+    await Department.deleteMany({});
+    console.log('🗑️ Collections `users` et `departments` vidées');
 
-    // Créer les utilisateurs de test
+    // créer quelques départements professionnels
+    const deptsData = [
+      { nom: 'Qualité', description: 'Département qualité et conformité' },
+      { nom: 'Production', description: 'Département production' },
+      { nom: 'IT', description: 'Support et développement informatique' }
+    ];
+
+    const departements = [];
+    for (const d of deptsData) {
+      const dept = new Department(d);
+      await dept.save();
+      departements.push(dept);
+      console.log(`🏢 Département créé : ${dept.nom}`);
+    }
+
+    // utilisateurs professionnels associés aux départements
     const users = [
       {
-        nom: 'Admin SMQ',
-        email: 'admin@smq.tn',
-        motDePasse: 'admin123',
-        role: 'admin'
+        nom: 'Amine Directeur',
+        email: 'amine.directeur@smq.tn',
+        motDePasse: 'Secret123!',
+        role: 'admin',
+        departement: departements.find(d => d.nom === 'Qualité')._id
       },
       {
-        nom: 'Validateur Qualité',
-        email: 'validateur@smq.tn',
-        motDePasse: 'valid123',
-        role: 'validateur'
+        nom: 'Sara Validatrice',
+        email: 'sara.validatrice@smq.tn',
+        motDePasse: 'Valider456!',
+        role: 'validateur',
+        departement: departements.find(d => d.nom === 'Qualité')._id
       },
       {
-        nom: 'Utilisateur Test',
-        email: 'user@smq.tn',
-        motDePasse: 'user123',
-        role: 'utilisateur'
+        nom: 'Khaled Opérateur',
+        email: 'khaled.operateur@smq.tn',
+        motDePasse: 'Op3rateur!',
+        role: 'utilisateur',
+        departement: departements.find(d => d.nom === 'Production')._id
+      },
+      {
+        nom: 'Leila IT',
+        email: 'leila.it@smq.tn',
+        motDePasse: 'ItSec789!',
+        role: 'utilisateur',
+        departement: departements.find(d => d.nom === 'IT')._id
       }
     ];
 
@@ -41,14 +76,12 @@ async function createTestUsers() {
       console.log(`✅ Utilisateur créé: ${userData.email}`);
     }
 
-    console.log('🎉 Tous les utilisateurs de test ont été créés !');
-    console.log('\n📋 Comptes disponibles :');
-    console.log('Admin: admin@smq.tn / admin123');
-    console.log('Validateur: validateur@smq.tn / valid123');
-    console.log('Utilisateur: user@smq.tn / user123');
+    console.log('🎉 Base professionnelle initialisée !');
+    console.log('\n📋 Utilisateurs disponibles :');
+    users.forEach(u => console.log(`${u.role}: ${u.email} / ${u.motDePasse}`));
 
   } catch (error) {
-    console.error('❌ Erreur:', error);
+    console.error('❌ Erreur dans le seed:', error);
   } finally {
     await mongoose.disconnect();
     console.log('🔌 Déconnecté de MongoDB');

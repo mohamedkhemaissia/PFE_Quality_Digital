@@ -12,9 +12,17 @@ app.use(cors());
 app.use('/uploads', express.static('uploads'));
 
 // Connexion MongoDB
-mongoose.connect(process.env.MONGO_URI)
+const { MONGO_URI } = process.env;
+if (!MONGO_URI) {
+  console.error('🚨 La variable d\'environnement MONGO_URI est manquante.');
+  process.exit(1);
+}
+mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ Connecté à MongoDB Cloud!"))
-  .catch(err => console.error("❌ Erreur de connexion MongoDB", err));
+  .catch(err => {
+    console.error("❌ Erreur de connexion MongoDB", err);
+    process.exit(1);
+  });
 
 // Routes
 const authRoutes = require('./src/routes/authRoutes');

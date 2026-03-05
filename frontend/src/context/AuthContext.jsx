@@ -7,6 +7,11 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL;
+  if (!API_URL) {
+    console.error('🛑 VITE_API_URL n\'est pas défini dans le .env du frontend');
+    // on ne quitte pas l'application, mais toute requête vers l'API va échouer
+  }
 
   useEffect(() => {
     if (token) {

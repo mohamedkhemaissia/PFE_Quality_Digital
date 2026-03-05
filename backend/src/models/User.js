@@ -21,7 +21,10 @@ const UserSchema = new mongoose.Schema({
     enum: ['utilisateur', 'validateur', 'admin'],
     default: 'utilisateur'
   },
-  departement: String,
+  departement: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department'
+  },
   actif: {
     type: Boolean,
     default: true
