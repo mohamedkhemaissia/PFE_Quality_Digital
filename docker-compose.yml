@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Base de données MongoDB
+  mongodb:
+    image: mongo:7-jammy
+    container_name: smq-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - smq-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./docker/backend.Dockerfile
+    container_name: smq-backend
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/smq_db?authSource=admin
+      - JWT_SECRET=your_jwt_secret_key_change_in_production
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - smq-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./docker/frontend.Dockerfile
+    container_name: smq-frontend
+    restart: always
+    environment:
+      - VITE_API_URL=http://backend:3000
+    ports:
+      - "4173:4173"
+    depends_on:
+      - backend
+    networks:
+      - smq-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  smq-network:
+    driver: bridge
