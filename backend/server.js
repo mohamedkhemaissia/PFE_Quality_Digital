@@ -4,6 +4,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
+// Vérifier les variables d'environnement requises au démarrage
+const required_vars = ['MONGO_URI', 'JWT_SECRET'];
+const missing_vars = required_vars.filter(v => !process.env[v]);
+if (missing_vars.length > 0) {
+  console.error('\n🚨 ERREUR: Variables d\'environnement manquantes:');
+  missing_vars.forEach(v => console.error(`  - ${v}`));
+  console.error('\nVérifiez votre fichier .env ou définissez ces variables.\n');
+  process.exit(1);
+}
+
 const app = express();
 
 // Middleware

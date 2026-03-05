@@ -1,7 +1,10 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('🛑 JWT_SECRET n\'est pas défini dans les variables d\'environnement');
+}
 
 // Inscription
 exports.register = async (req, res) => {
