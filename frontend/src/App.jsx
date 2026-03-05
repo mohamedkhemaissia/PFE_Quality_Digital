@@ -3,6 +3,7 @@ import axios from 'axios';
 import { MessageSquare, Send, Database, FileText, Upload } from 'lucide-react';
 
 function App() {
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const [procedures, setProcedures] = useState([]);
   const [titre, setTitre] = useState('');
   const [file, setFile] = useState(null); // État pour le fichier
@@ -13,7 +14,7 @@ function App() {
 
   const fetchProcedures = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/procedures');
+      const res = await axios.get(`${API_BASE}/procedures`);
       setProcedures(res.data);
     } catch (err) { console.error("Erreur de connexion au serveur"); }
   };
@@ -24,25 +25,25 @@ function App() {
     formData.append('titre', titre);
     formData.append('pdf', file);
 
-    await axios.post('http://localhost:3000/procedures', formData);
+    await axios.post(`${API_BASE}/procedures`, formData);
     setTitre('');
     setFile(null);
     fetchProcedures();
   };
 
   const updateStatut = async (id, statut) => {
-    await axios.put(`http://localhost:3000/procedures/${id}`, { statut });
+    await axios.put(`${API_BASE}/procedures/${id}`, { statut });
     fetchProcedures();
   };
 
   const supprimerProcedure = async (id) => {
-    await axios.delete(`http://localhost:3000/procedures/${id}`);
+    await axios.delete(`${API_BASE}/procedures/${id}`);
     fetchProcedures();
   };
 
   const poserQuestion = async (e) => {
     e.preventDefault();
-    const res = await axios.post('http://localhost:3000/chat', { message: question });
+    const res = await axios.post(`${API_BASE}/chat`, { message: question });
     setChatLog([...chatLog, { role: 'user', text: question }, { role: 'ia', text: res.data.reply }]);
     setQuestion('');
   };
