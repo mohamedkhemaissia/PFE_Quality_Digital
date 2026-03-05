@@ -43,8 +43,8 @@ export const AuthProvider = ({ children }) => {
       if (res.data.token && res.data.user) {
         localStorage.setItem('token', res.data.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        // SET USER DIRECTLY - don't call setToken() to avoid validateToken loop
         setUser(res.data.user);
-        setToken(res.data.token);
         return res.data;
       } else {
         throw new Error('Réponse invalide du serveur');
@@ -66,8 +66,8 @@ export const AuthProvider = ({ children }) => {
       if (res.data.token && res.data.user) {
         localStorage.setItem('token', res.data.token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        // SET USER DIRECTLY - don't call setToken() to avoid validateToken loop
         setUser(res.data.user);
-        setToken(res.data.token);
         return res.data;
       } else {
         throw new Error('Réponse invalide du serveur');

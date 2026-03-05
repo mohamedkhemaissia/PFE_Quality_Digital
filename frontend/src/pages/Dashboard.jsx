@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { FileText, Send, Upload, LogOut, Menu, X } from 'lucide-react';
+import { FileText, Send, Upload, LogOut, MessageCircle, Eye, X, ChevronDown } from 'lucide-react';
 
 // base URL fournie par .env, aucune valeur par défaut pour forcer la configuration
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -19,6 +19,341 @@ export default function Dashboard() {
   const [showDetails, setShowDetails] = useState(false);
   const [question, setQuestion] = useState('');
   const [chatLog, setChatLog] = useState([]);
+  const [showChat, setShowChat] = useState(false);
+
+  useEffect(() => {
+    fetchProcedures();
+    fetchStats();
+  }, []);
+
+  const fetchProcedures = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/procedures/`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setProcedures(res.data);
+    } catch (err) {
+      console.error('Erreur lors de la récupération des procédures');
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/procedures/statistics`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setStats(res.data);
+    } catch (err) {
+      console.error('Erreur lors de la récupération des stats');
+    }
+  };
+
+  const handleAjouter = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('titre', titre);
+    formData.append('description', description);
+    if (file) formData.append('pdf', file);
+
+    try {
+      await axios.post(`${API_BASE}/api/procedures/`, formData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setTitre('');
+      setDescription('');
+      setFile(null);
+      setShowForm(false);
+      fetchProcedures();
+      fetchStats();
+    } catch (err) {
+      alert('Erreur lors de l\'ajout');
+    }
+  };
+
+  const handleAskChatbot = async (e) => {
+    e.preventDefault();
+    if (!question.trim()) return;
+
+    const newLog = [...chatLog, { role: 'user', message: question }];
+    setChatLog(newLog);
+    setQuestion('');
+
+    try {
+      const res = await axios.post(`${API_BASE}/api/chat`, { message: question }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setChatLog([...newLog, { role: 'bot', message: res.data.reply }]);
+    } catch (err) {
+      setChatLog([...newLog, { role: 'bot', message: 'Erreur de connexion au chatbot' }]);
+    }
+  };
+
+  const handleRequestValidation = async (id) => {
+    try {
+      await axios.post(`${API_BASE}/api/procedures/${id}/request-validation`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchProcedures();
+    } catch (err) {
+      alert('Erreur');
+    }
+  };
+
+  const handleValidate = async (id, approuver) => {
+    try {
+      await axios.post(`${API_BASE}/api/procedures/${id}/validate`, 
+        { approuver, commentaires }, 
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      fetchProcedures();
+      setShowDetails(false);
+    } catch (err) {
+      alert('Erreur');
+    }
+  };
+
+  const handleArchive = async (id) => {
+    try {
+      await axios.post(`${API_BASE}/api/procedures/${id}/archive`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchProcedures();
+    } catch (err) {
+      alert('Erreur');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Confirmer la suppression?')) return;
+    try {
+      await axios.delete(`${API_BASE}/api/procedures/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchProcedures();
+      fetchStats();
+    } catch (err) {
+      alert('Erreur');
+    }
+  };
+
+  const selectedProcedure = procedures.find(p => p._id === selectedId);
+
+  return (
+    <div style={{ fontFamily: 'Segoe UI', backgroundColor: '#f0f2f5', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header Amélioré */}
+      <header style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+        <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 'bold' }}>📋 SMQ Digital</h1>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <button onClick={() => setShowChat(!showChat)} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+            <MessageCircle size={18} /> Chatbot
+          </button>
+          <span style={{ background: 'rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: '6px', fontSize: '14px' }}>{user?.nom}</span>
+          <span style={{ background: 'rgba(255,255,255,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>{user?.role.toUpperCase()}</span>
+          <button onClick={logout} style={{ background: '#ff6b6b', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <LogOut size={16} /> Déconnexion
+          </button>
+        </div>
+      </header>
+
+      <div style={{ display: 'flex', flex: 1, padding: '20px 30px', gap: '20px', maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}>
+        {/* Colonne Gauche - Procédures et Stats */}
+        <div style={{ flex: showDetails ? '1 1 40%' : '1 1 100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Stats Cards */}
+          {stats && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(102,126,234,0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.totalProcedures}</div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>Documents</div>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(245,87,108,0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.validees}</div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>Validés</div>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,242,254,0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.enValidation}</div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>En validation</div>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(67,233,123,0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.brouillons}</div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>Brouillons</div>
+              </div>
+            </div>
+          )}
+
+          {/* Procédures Section */}
+          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0', fontSize: '17px', fontWeight: '600' }}>
+                <FileText size={20} /> Procédures
+              </h3>
+              <button onClick={() => setShowForm(!showForm)} style={{ background: '#667eea', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                + Nouvelle
+              </button>
+            </div>
+
+            {showForm && (
+              <form onSubmit={handleAjouter} style={{ marginBottom: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                <input type="text" placeholder="Titre" value={titre} onChange={(e) => setTitre(e.target.value)} required style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #dee2e6', borderRadius: '6px', boxSizing: 'border-box', fontSize: '13px' }} />
+                <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #dee2e6', borderRadius: '6px', boxSizing: 'border-box', minHeight: '70px', fontSize: '13px' }} />
+                <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ marginBottom: '10px', fontSize: '13px' }} />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
+                    Enregistrer
+                  </button>
+                  <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#e9ecef', color: '#495057', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                    Annuler
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
+              {procedures.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#adb5bd', padding: '40px 20px' }}>Aucune procédure pour le moment</div>
+              ) : (
+                procedures.map(p => (
+                  <div key={p._id} onClick={() => { setSelectedId(p._id); setShowDetails(true); }} style={{
+                    padding: '12px',
+                    borderBottom: '1px solid #e9ecef',
+                    cursor: 'pointer',
+                    background: selectedId === p._id ? '#e7f1ff' : 'white',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    transition: 'all 0.2s',
+                    border: selectedId === p._id ? '2px solid #667eea' : '1px solid transparent'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                      <div>
+                        <strong style={{ fontSize: '14px' }}>{p.titre}</strong>
+                        <br />
+                        <span style={{ fontSize: '12px', color: '#7f8c8d' }}>v{p.version} • {new Date(p.dateCreation).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        background: p.statut === 'Validé' ? '#d4edda' : p.statut === 'En validation' ? '#fff3cd' : '#e2e3e5',
+                        color: p.statut === 'Validé' ? '#155724' : p.statut === 'En validation' ? '#856404' : '#383d41',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {p.statut}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Colonne Droite - Détails ou Chat */}
+        {showDetails && selectedProcedure ? (
+          <div style={{ flex: '1 1 60%', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>{selectedProcedure.titre}</h3>
+                <p style={{ fontSize: '13px', color: '#7f8c8d', margin: '0' }}>
+                  Version {selectedProcedure.version} • {selectedProcedure.statut}
+                </p>
+              </div>
+              <button onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '24px' }}>×</button>
+            </div>
+
+            <p style={{ color: '#495057', lineHeight: '1.6', marginBottom: '15px', fontSize: '14px' }}>{selectedProcedure.description}</p>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '15px', borderTop: '1px solid #e9ecef' }}>
+              {selectedProcedure.statut === 'Brouillon' && selectedProcedure.auteur?._id === user?.id && (
+                <>
+                  <button onClick={() => handleRequestValidation(selectedProcedure._id)} style={{ padding: '8px 15px', background: '#3498db', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    Demander validation
+                  </button>
+                  <button onClick={() => handleDelete(selectedProcedure._id)} style={{ padding: '8px 15px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    Supprimer
+                  </button>
+                </>
+              )}
+
+              {selectedProcedure.statut === 'En validation' && (user?.role === 'admin' || user?.role === 'validateur') && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Commentaires"
+                    value={commentaires}
+                    onChange={(e) => setCommentaires(e.target.value)}
+                    style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' }}
+                  />
+                  <button onClick={() => handleValidate(selectedProcedure._id, true)} style={{ padding: '8px 15px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    ✓ Valider
+                  </button>
+                  <button onClick={() => handleValidate(selectedProcedure._id, false)} style={{ padding: '8px 15px', background: '#e67e22', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                    ✗ Rejeter
+                  </button>
+                </>
+              )}
+
+              {selectedProcedure.statut === 'Validé' && (user?.role === 'admin' || user?.role === 'validateur') && (
+                <button onClick={() => handleArchive(selectedProcedure._id)} style={{ padding: '8px 15px', background: '#95a5a6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                  Archiver
+                </button>
+              )}
+            </div>
+
+            {selectedProcedure.commentairesValidation && (
+              <div style={{ marginTop: '15px', padding: '12px', background: '#fffbea', borderLeft: '4px solid #f39c12', borderRadius: '4px', fontSize: '13px' }}>
+                <strong>Commentaires:</strong> {selectedProcedure.commentairesValidation}
+              </div>
+            )}
+          </div>
+        ) : showChat ? (
+          <div style={{ flex: '1 1 60%', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '17px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <MessageCircle size={20} /> Chatbot IA
+            </h3>
+
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', marginBottom: '15px', background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
+              {chatLog.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#adb5bd', padding: '40px 20px' }}>
+                  Posez des questions sur vos procédures...
+                </div>
+              ) : (
+                chatLog.map((msg, idx) => (
+                  <div key={idx} style={{ marginBottom: '12px', display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      background: msg.role === 'user' ? '#667eea' : '#e9ecef',
+                      color: msg.role === 'user' ? 'white' : '#495057',
+                      padding: '10px 13px',
+                      borderRadius: '8px',
+                      maxWidth: '80%',
+                      wordWrap: 'break-word',
+                      fontSize: '13px',
+                      lineHeight: '1.4'
+                    }}>
+                      {msg.message}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={handleAskChatbot} style={{ display: 'flex', gap: '10px' }}>
+              <input
+                type="text"
+                placeholder="Posez une question..."
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                style={{ flex: 1, padding: '10px', border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '13px' }}
+              />
+              <button type="submit" style={{ background: '#667eea', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
   useEffect(() => {
     fetchProcedures();
