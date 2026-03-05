@@ -35,26 +35,48 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, motDePasse) => {
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-      email,
-      motDePasse
-    });
-    localStorage.setItem('token', res.data.token);
-    setToken(res.data.token);
-    setUser(res.data.user);
-    return res.data;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+        email,
+        motDePasse
+      });
+      if (res.data.token && res.data.user) {
+        localStorage.setItem('token', res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        setUser(res.data.user);
+        setToken(res.data.token);
+        return res.data;
+      } else {
+        throw new Error('Réponse invalide du serveur');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'Erreur de connexion';
+      console.error('Login failed:', errorMsg);
+      throw err;
+    }
   };
 
   const register = async (nom, email, motDePasse) => {
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
-      nom,
-      email,
-      motDePasse
-    });
-    localStorage.setItem('token', res.data.token);
-    setToken(res.data.token);
-    setUser(res.data.user);
-    return res.data;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+        nom,
+        email,
+        motDePasse
+      });
+      if (res.data.token && res.data.user) {
+        localStorage.setItem('token', res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        setUser(res.data.user);
+        setToken(res.data.token);
+        return res.data;
+      } else {
+        throw new Error('Réponse invalide du serveur');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'Erreur d\'inscription';
+      console.error('Register failed:', errorMsg);
+      throw err;
+    }
   };
 
   const logout = () => {

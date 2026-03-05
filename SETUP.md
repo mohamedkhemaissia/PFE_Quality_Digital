@@ -44,7 +44,12 @@ NODE_ENV=development
 - ❌ **Ne copiez-collez pas** les credentials visibles ou exposées
 - ✅ Changez votre mot de passe MongoDB Atlas immédiatement (vous avez un mail de MongoDB)
 
----
+**Format URI MongoDB (ne pas paster d'exemple réel ici):**
+```
+mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/DATABASE?retryWrites=true
+```
+
+Recherchez votre URI complète dans MongoDB Atlas → Connect → Drivers → Copy connection string.
 
 ## ▶️ Démarrer le projet
 

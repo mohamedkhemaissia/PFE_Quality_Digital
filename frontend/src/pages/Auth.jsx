@@ -21,12 +21,17 @@ export default function Auth() {
     try {
       if (isLogin) {
         await login(formData.email, formData.motDePasse);
+        // Redirection automatique via AuthContext
       } else {
         await register(formData.nom, formData.email, formData.motDePasse);
+        // Redirection automatique via AuthContext
       }
+      // Réinitialiser le formulaire après succès
+      setFormData({ nom: '', email: '', motDePasse: '' });
     } catch (err) {
-      console.error('Login/register error:', err);
-      setError(err.response?.data?.message || 'Erreur');
+      const errorMsg = err.response?.data?.message || err.message || 'Erreur';
+      setError(errorMsg);
+      console.error('Auth error:', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -54,15 +59,6 @@ export default function Auth() {
           {isLogin ? 'Connexion' : 'Inscription'}
         </h1>
 
-        {/* Debug: show current API URL */}
-        <div style={{fontSize:'12px', color:'#888', marginBottom:'10px', textAlign:'center'}}>
-          API_URL = {import.meta.env.VITE_API_URL || 'non défini'}
-        </div>
-
-        {/* Les utilisateurs sont désormais gérés dans la base Atlas. */}
-        <div style={{fontSize:'12px', color:'#888', marginBottom:'10px', textAlign:'center'}}>
-          Créez des comptes via l'administration ou directement dans MongoDB Atlas.
-        </div>
 
         {error && <div style={{ background: '#fee', padding: '10px', color: '#c33', marginBottom: '15px', borderRadius: '5px' }}>{error}</div>}
 

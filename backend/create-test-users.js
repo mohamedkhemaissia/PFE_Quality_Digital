@@ -1,12 +1,12 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./src/models/User');
 const Department = require('./src/models/Department');
 
 // Connexion à MongoDB
-// Ne jamais laisser de credentials en dur dans ce fichier. L'URI doit
-en être fourni via une variable d'environnement (MONGO_URI).
-// Si vous travaillez en local, placez-la dans backend/.env et assurez‑vous que
-// le fichier est listé dans .gitignore (c'est déjà le cas).
+// Ne jamais laisser de credentials en dur dans ce fichier.
+// L'URI doit être fourni via une variable d'environnement (MONGO_URI).
+// Si vous travaillez en local, placez-la dans backend/.env
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
   console.error('🚨 MONGO_URI non défini. Veuillez configurer la variable d\'environnement.');
